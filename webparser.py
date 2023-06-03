@@ -1,5 +1,7 @@
 import ssl
 from urllib.parse import urlparse
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
 
 
 # return context that ignore SSL certificate error
@@ -35,6 +37,36 @@ def get_urldomain(url):
 def get_cleanurl(url):
     result = urlparse(url)
     return result.scheme + "://" + result.netloc
+
+
+# return document, list of href link from url
+def get_url_detail(url, ctx):
+
+    try:
+        document = urlopen(url, context=ctx).read()
+    except:
+        return None
+
+    linklist = list()
+
+     # parsing html w bs4
+    soup = BeautifulSoup(document, "html.parser")
+
+    # retrieve all the anchor tags
+    tags = soup('a')
+
+    # for every tag
+    for tag in tags:
+        link = str(tag.get('href', None))
+        if is_url(link): linklist.append(link)
+
+    return document, linklist
+
+
+
+
+
+
 
 
 

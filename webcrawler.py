@@ -34,10 +34,10 @@ if roots is None:
 # there is at least one root in db
 if not check_new_root:
     while True:
-        print("There are", len(roots), "URL roots:")
+        print("There are", len(roots), "ROOT URL:")
         for r in roots: print(r[0], "-", r[1])
 
-        control = input("\nSelect an URL to continue the web crawling (0 for a fresh start): ")
+        control = input("\nSelect a ROOT URL to continue the web crawling (0 for a fresh start): ")
 
         try:
             control = int(control)
@@ -53,12 +53,12 @@ if not check_new_root:
         if control > 0:
             new_root = None
             old_root = roots[control-1][1]
-            print("URL selected:", old_root)
+            print("ROOT URL selected:", old_root)
 
             # check if root is already explored
             if db.get_root_explored(root_cur, old_root)[0]:
-                print("There are no URL to explore")
-                quit()
+                print("ROOT URL", old_root, "already explored\n")
+                continue
 
             break
 
@@ -71,14 +71,14 @@ if not check_new_root:
 if check_new_root:
     old_root = None
     while True:
-        new_root = input("Enter a URL as a start for web crawling: ")
+        new_root = input("Enter a ROOT URL as a start for web crawling: ")
 
         # cleaning the url root
         if web.is_url(new_root):
             clean_root = web.get_cleanurl(new_root)
             if new_root != clean_root:
                 new_root = clean_root
-                print("Cleaning the URL:", new_root)
+                print("Cleaning the ROOT URL:", new_root)
 
             # insert the new root in db
             db.root_puturl(root_conn, root_cur, new_root)
@@ -103,14 +103,18 @@ if new_root is not None:
     db.insert_url_noexp(url_cur, root_url)
     url_conn.commit()
 
+# get contex that ignore SSL certificate error
+ctx = web.getcontext()
+
 exp_count = 0
 exp_max = 0
 # web crawling loop
 while True:
+
     # how many url to explore?
     if exp_max == 0:
         while True:
-            iteration = input("How many URL to explore?")
+            iteration = input("How many URL to explore? ")
 
             try:
                 exp_max = int(iteration)
@@ -123,12 +127,16 @@ while True:
                 continue
             else: break
 
+    # commit db ops every 10 iterations
+    elif exp_count > 0 and exp_count%10 == 0:
+        url_conn.commit()
+
     # number of iteration done
     elif exp_count == exp_max:
         print("Explored", exp_count, "URL")
 
         while True:
-            iteration = input("Type -1 to exit or a number to web crawl more URL:")
+            iteration = input("Type -1 to exit or a number to explore more URL:")
 
             try:
                 iteration = int(iteration)
@@ -139,25 +147,68 @@ while True:
             if iteration == -1:
                 quit()
             elif iteration <= 0:
-                print("Select a nuber > 0")
+                print("Select a number greater than 0")
                 continue
             else:
                 exp_max = exp_max + iteration
                 break
 
+    # continue to explore
     else:
         # check for a not explored url
         new_url = db.select_url_noexp(url_cur)
 
         # if no url to explore > root already explored
         if new_url is None:
-            print("There are no URL to explore")
+            print("There are no more URL to explore")
             db.set_root_explored(root_conn, root_cur, root_url)
             quit()
-        # at least one url to explore
+        # at least one url to explore > new_url
         else:
 
-            print('parse the new url', new_url)
-            exp_count += 1
+            #explore the new_url (not explored)
+            #retrieve all the link from new_url
+            #mark new_url as explored
+            #add all the links as not explored in table pages
+            #add all the from > to in link pages
+            #iterate again picking a new_url (not explored)
+
+            print('Exploring the URL #', new_url[0], ">", new_url[1])
+            resp = web.get_url_detail(new_url[1], ctx)
+
+            # can't open new_url
+            if resp is None:
+                print("Can't explore URL #", new_url[0], ">", new_url[1])
+                db.insert_url_err(url_conn, url_cur, new_url[1])
+                continue
+            else:
+                document = resp[0]
+                link_lst = resp[1]
+                #print(resp)
+                #print(document)
+                #print(link_lst)
+
+                #html = document.read()
+                #http_code = document.getcode()
+                #text/html' != document.info().get_content_type()
+
+                # > MARK NEW_URL[1] AS EXPLORED
+                #db.insert_url_exp(url_conn, url_cur)
+
+                # new_url does not link to other url
+                if len(link_lst) < 1:
+                    print("There are not links from URL #", new_url[0], ">", new_url[1])
+
+                else:
+                    for link in link_lst:
+                        print("Retrieved link:", link)
+                        db.insert_url_noexp(url_conn, url_cur, link)
+
+                exp_count += 1
+
+print("Explored:", exp_count, "URL")
+db.db_close(root_conn, root_cur)
+db.db_close(url_conn, url_cur)
+quit()
 
 

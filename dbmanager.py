@@ -74,13 +74,24 @@ def select_url_noexp(cur):
     return cur.fetchone()
 
 # insert a not explored page
-def insert_url_noexp (cur, url):
+def insert_url_noexp (conn, cur, url):
+    print(url)
     cur.execute('INSERT OR IGNORE INTO Pages (url, html, new_rank) VALUES ( ?, NULL, 1.0 )', (url,))
+    conn.commit()
 
-def insert_explpage():
-    print()
+def insert_url_exp (conn, cur, url, html, http_code):
+
+    cur.execute('INSERT OR IGNORE INTO Pages (url, html, new_rank) VALUES ( ?, NULL, 1.0 )', (url,))
+    cur.execute('UPDATE Pages SET (html, http_error) VALUES (?, ?) WHERE url=?', (memoryview(html), http_code, url))
+    conn.commit()
 
 
+def insert_url_err (conn, cur, url):
+    cur.execute('UPDATE Pages SET http_error=-1 WHERE url=?', (url,))
+    conn.commit()
+
+#def update_links(cur, from_id, to_id):
+   # cur.execute('INSERT OR IGNORE INTO Links (from_id, to_id) VALUES ( ?, ? )', (fromid, toid))
 
 def db_close(conn, cur):
     cur.close()
