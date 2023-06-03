@@ -20,6 +20,14 @@ It can rank the pages based of the number of link that have and show the graph o
 import dbmanager as db
 import webparser as web
 
+import sqlite3
+import urllib.error
+import ssl
+from urllib.parse import urljoin
+from urllib.parse import urlparse
+from urllib.request import urlopen
+from bs4 import BeautifulSoup
+
 # db root connect
 db_root = db.root_connect()
 root_conn = db_root[0]
@@ -100,7 +108,7 @@ url_cur = db_url[1]
 
 # insert in db root_url (new_root) as not explored url
 if new_root is not None:
-    db.insert_url_noexp(url_cur, root_url)
+    db.insert_url_noexp(url_conn, url_cur, root_url)
     url_conn.commit()
 
 # get contex that ignore SSL certificate error
@@ -128,8 +136,8 @@ while True:
             else: break
 
     # commit db ops every 10 iterations
-    elif exp_count > 0 and exp_count%10 == 0:
-        url_conn.commit()
+    #elif exp_count > 0 and exp_count%10 == 0:
+        #url_conn.commit()
 
     # number of iteration done
     elif exp_count == exp_max:
@@ -173,35 +181,42 @@ while True:
             #add all the from > to in link pages
             #iterate again picking a new_url (not explored)
 
-            print('Exploring the URL #', new_url[0], ">", new_url[1])
+            print('> Exploring URL:', new_url[0], "-", new_url[1])
             resp = web.get_url_detail(new_url[1], ctx)
 
             # can't open new_url
             if resp is None:
-                print("Can't explore URL #", new_url[0], ">", new_url[1])
-                db.insert_url_err(url_conn, url_cur, new_url[1])
+                print("<!> Can't open URL:", new_url[0], "-", new_url[1])
+                db.insert_url_err(url_conn, url_cur, -1, new_url[1])
                 continue
             else:
-                document = resp[0]
-                link_lst = resp[1]
-                #print(resp)
-                #print(document)
-                #print(link_lst)
+                html = resp[0]
+                http_code = resp[1]
+                http_content_type = resp[2]
+                link_lst = resp[3]
 
-                #html = document.read()
-                #http_code = document.getcode()
-                #text/html' != document.info().get_content_type()
+                # check url http error
+                if http_code != 200:
+                    print("<!> Error", http_code, "on URL:", new_url[0], "-", new_url[1])
+                    db.insert_url_err(url_conn, url_cur, http_code, new_url[1])
+                    continue
 
-                # > MARK NEW_URL[1] AS EXPLORED
-                #db.insert_url_exp(url_conn, url_cur)
+                # check content type url (text/html)
+                if 'text/html' != http_content_type:
+                    print("<!> URL not HTML:", new_url[0], "-", new_url[1])
+                    db.insert_url_err(url_conn, url_cur, -1, new_url[1])
+                    continue
+
+                # mark as explored new url in db
+                db.insert_url_exp(url_conn, url_cur, new_url[1], html, http_code)
 
                 # new_url does not link to other url
                 if len(link_lst) < 1:
-                    print("There are not links from URL #", new_url[0], ">", new_url[1])
+                    print("<!> No links from URL:", new_url[0], "-", new_url[1])
 
                 else:
                     for link in link_lst:
-                        print("Retrieved link:", link)
+                        #print("Retrieved link:", link)
                         db.insert_url_noexp(url_conn, url_cur, link)
 
                 exp_count += 1

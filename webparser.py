@@ -27,11 +27,8 @@ def get_urldomain(url):
     except:
         return None
 
-    lpos = domain.find('.')
-    rpos = domain.rfind('.')
-    if lpos == rpos: lpos = -1
+    return domain.replace('.', '-')
 
-    return domain[lpos + 1:rpos]
 
 # return clean url or none (ex: https://www.wikipedia.org/loreipsum > https://www.wikipedia.org)
 def get_cleanurl(url):
@@ -39,18 +36,23 @@ def get_cleanurl(url):
     return result.scheme + "://" + result.netloc
 
 
-# return document, list of href link from url
+# return html http code, http content type, list of href link from url
 def get_url_detail(url, ctx):
 
     try:
-        document = urlopen(url, context=ctx).read()
+        document = urlopen(url, context=ctx)
+        html = document.read()
     except:
         return None
+
+    http_code = document.getcode()
+    http_content_type = document.info().get_content_type()
+
 
     linklist = list()
 
      # parsing html w bs4
-    soup = BeautifulSoup(document, "html.parser")
+    soup = BeautifulSoup(html, "html.parser")
 
     # retrieve all the anchor tags
     tags = soup('a')
@@ -60,7 +62,7 @@ def get_url_detail(url, ctx):
         link = str(tag.get('href', None))
         if is_url(link): linklist.append(link)
 
-    return document, linklist
+    return (html, http_code, http_content_type, linklist)
 
 
 
