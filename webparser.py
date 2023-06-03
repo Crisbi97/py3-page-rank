@@ -11,7 +11,7 @@ def getcontext():
     ctx.verify_mode = ssl.CERT_NONE
     return ctx
 
-# return True if url is valid False else
+# return True if url is valid, False else
 def is_url(url):
     try:
         result = urlparse(url)
@@ -19,7 +19,7 @@ def is_url(url):
     except ValueError:
         return False
 
-# return domain from url or none (ex: https://www.wikipedia.org/ > wikipedia)
+# return formatted domain from url or none ex: (https://www.wikipedia.org/ > www-wikipedia-org) (used as db name)
 def get_urldomain(url):
 
     try:
@@ -30,13 +30,13 @@ def get_urldomain(url):
     return domain.replace('.', '-')
 
 
-# return clean url or none (ex: https://www.wikipedia.org/loreipsum > https://www.wikipedia.org)
+# return clean url (remove all paths) or none (ex: https://www.wikipedia.org/loreipsum > https://www.wikipedia.org)
 def get_cleanurl(url):
     result = urlparse(url)
     return result.scheme + "://" + result.netloc
 
 
-# return html http code, http content type, list of href link from url
+# return html, http code, http content type, list of href link from url
 def get_url_detail(url, ctx):
 
     try:

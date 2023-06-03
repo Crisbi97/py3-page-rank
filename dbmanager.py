@@ -26,15 +26,17 @@ def root_geturl(cur):
     else:
         return result
 
-# insert into root db a new url
+# insert into root db a new root url
 def root_puturl(conn, cur, url):
     cur.execute('INSERT OR IGNORE INTO ROOT (url, explored) VALUES (?, 0)', (url,))
     conn.commit()
 
+# return 0 if root url not explored, 1 else
 def get_root_explored(cur, url):
     cur.execute('SELECT explored FROM Root WHERE url = ?', (url,))
     return cur.fetchone()
 
+# update into root db a root url as explored
 def set_root_explored(conn, cur, url):
     cur.execute('UPDATE Root SET explored = 1 WHERE url = ?', (url,))
     conn.commit()
@@ -68,31 +70,40 @@ def url_connect(url):
 
     return conn, cur
 
-# select id, url of a not explored page
+# return id from url
+def select_id(cur, url):
+    cur.execute('SELECT id FROM Pages WHERE url = ?', (url,))
+    return cur.fetchone()[0]
+
+# return id, url from not explored url
 def select_url_noexp(cur):
     cur.execute('SELECT id, url FROM Pages WHERE html is NULL and http_code is NULL ORDER BY RANDOM() LIMIT 1')
     return cur.fetchone()
 
-# insert a not explored page
+# insert url as not explored
 def insert_url_noexp (conn, cur, url):
 
     cur.execute('INSERT OR IGNORE INTO Pages (url, html, new_rank) VALUES ( ?, NULL, 1.0 )', (url,))
     conn.commit()
 
+# insert url as explored
 def insert_url_exp (conn, cur, url, html, http_code):
 
     cur.execute('INSERT OR IGNORE INTO Pages (url, html, new_rank) VALUES ( ?, NULL, 1.0 )', (url,))
     cur.execute('UPDATE Pages SET html=?, http_code=? WHERE url=?', (memoryview(html), http_code, url))
     conn.commit()
 
-
+# insert url as error url
 def insert_url_err (conn, cur, http_code, url):
     cur.execute('UPDATE Pages SET http_code=? WHERE url=?', (http_code, url))
     conn.commit()
 
-#def update_links(cur, from_id, to_id):
-   # cur.execute('INSERT OR IGNORE INTO Links (from_id, to_id) VALUES ( ?, ? )', (fromid, toid))
+# insert into link table a row from_id, to_id
+def update_links(cur, from_id, to_id):
+    cur.execute('INSERT OR IGNORE INTO Links (from_id, to_id) VALUES (?, ?)', (from_id, to_id))
+    #commit at the closing of db (end of webcrawler.py)
 
+# commit and close db conn, cur
 def db_close(conn, cur):
     cur.close()
 

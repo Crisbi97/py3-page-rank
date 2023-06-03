@@ -1,32 +1,5 @@
-'''
-The program get a starting url (root url) and crawl the pages reachable from the root url.
-It can rank the pages based of the number of link that have and show the graph on an html page
-
-1. check if there are root url in db root
-    1.1 if not ask for a new root url to start crawling
-    1.2 if yes ask if continue to continue the crawl from an existing root or get a new
-
-2. if new root url: insert into db Pages as not explored
-
-3. check if there are some pages not explore
-    3.1 if true: continue
-    3.2 if false: ask for a new root url or stop
-
-4. pick a random page not explored and explore the html, flag as explored, add all the link as not_explored and count the occurrences from > to
-
-5. iterate untill user stop or no more to crawl
-'''
-
 import dbmanager as db
 import webparser as web
-
-import sqlite3
-import urllib.error
-import ssl
-from urllib.parse import urljoin
-from urllib.parse import urlparse
-from urllib.request import urlopen
-from bs4 import BeautifulSoup
 
 # db root connect
 db_root = db.root_connect()
@@ -173,14 +146,6 @@ while True:
             quit()
         # at least one url to explore > new_url
         else:
-
-            #explore the new_url (not explored)
-            #retrieve all the link from new_url
-            #mark new_url as explored
-            #add all the links as not explored in table pages
-            #add all the from > to in link pages
-            #iterate again picking a new_url (not explored)
-
             print('> Exploring URL:', new_url[0], "-", new_url[1])
             resp = web.get_url_detail(new_url[1], ctx)
 
@@ -214,10 +179,12 @@ while True:
                 if len(link_lst) < 1:
                     print("<!> No links from URL:", new_url[0], "-", new_url[1])
 
+                # insert all new link as not exp and update links table
                 else:
                     for link in link_lst:
-                        #print("Retrieved link:", link)
                         db.insert_url_noexp(url_conn, url_cur, link)
+                        link_id = db.select_id(url_cur, link)
+                        db.update_links(url_cur, new_url[0], link_id)
 
                 exp_count += 1
 
@@ -225,5 +192,3 @@ print("Explored:", exp_count, "URL")
 db.db_close(root_conn, root_cur)
 db.db_close(url_conn, url_cur)
 quit()
-
-
