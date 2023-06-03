@@ -39,6 +39,7 @@ def set_root_explored(conn, cur, url):
     cur.execute('UPDATE Root SET explored = 1 WHERE url = ?', (url,))
     conn.commit()
 
+
 # create url db, return connection, cursor
 def url_connect(url):
 
@@ -75,7 +76,6 @@ def select_url_noexp(cur):
 # insert a not explored page
 def insert_url_noexp (cur, url):
     cur.execute('INSERT OR IGNORE INTO Pages (url, html, new_rank) VALUES ( ?, NULL, 1.0 )', (url,))
-
 
 def insert_explpage():
     print()

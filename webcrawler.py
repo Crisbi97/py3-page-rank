@@ -103,15 +103,61 @@ if new_root is not None:
     db.insert_url_noexp(url_cur, root_url)
     url_conn.commit()
 
+exp_count = 0
+exp_max = 0
 # web crawling loop
-#while True:
-# check for a not explored url
-new_url = db.select_url_noexp(url_cur)
+while True:
+    # how many url to explore?
+    if exp_max == 0:
+        while True:
+            iteration = input("How many URL to explore?")
 
-# no url to explore
-if new_url is None:
-    print("There are no URL to explore")
-    db.set_root_explored(root_conn, root_cur, root_url)
-    quit()
-else:
-    print('parse the new url')
+            try:
+                exp_max = int(iteration)
+            except:
+                print("Input not valid")
+                continue
+
+            if exp_max <= 0:
+                print("Select a number > 0")
+                continue
+            else: break
+
+    # number of iteration done
+    elif exp_count == exp_max:
+        print("Explored", exp_count, "URL")
+
+        while True:
+            iteration = input("Type -1 to exit or a number to web crawl more URL:")
+
+            try:
+                iteration = int(iteration)
+            except:
+                print("Input not valid")
+                continue
+
+            if iteration == -1:
+                quit()
+            elif iteration <= 0:
+                print("Select a nuber > 0")
+                continue
+            else:
+                exp_max = exp_max + iteration
+                break
+
+    else:
+        # check for a not explored url
+        new_url = db.select_url_noexp(url_cur)
+
+        # if no url to explore > root already explored
+        if new_url is None:
+            print("There are no URL to explore")
+            db.set_root_explored(root_conn, root_cur, root_url)
+            quit()
+        # at least one url to explore
+        else:
+
+            print('parse the new url', new_url)
+            exp_count += 1
+
+
