@@ -37,7 +37,7 @@ if not check_new_root:
             print("ROOT URL selected:", old_root)
 
             # check if root is already explored
-            if db.get_root_explored(root_cur, old_root)[0]:
+            if db.get_root_explored(root_cur, old_root)[0]: # ! Change function name as "is_root_explored" and return cur.fetchone[0] > (1 || 0)
                 print("ROOT URL", old_root, "already explored\n")
                 continue
 
