@@ -82,7 +82,7 @@ url_cur = db_url[1]
 # insert in db root_url (new_root) as not explored url
 if new_root is not None:
     db.insert_url_noexp(url_conn, url_cur, root_url)
-    url_conn.commit()
+    #url_conn.commit() > commit already in func insert_url_noexp
 
 # get contex that ignore SSL certificate error
 ctx = web.getcontext()
